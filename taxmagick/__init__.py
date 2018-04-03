@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""
+Node and Tree objects
+"""
+import argparse
+import logging
+import pkg_resources
+import sys
+
+NCBI = 'ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz'
+
+
+class Node:
+    def __init__(self, tax_id):
+        self.tax_id = tax_id
+        self.children = []
+        self.name = ''
+
+    def __ranks__(self, ranks=set()):
+        ranks.add(self.rank)
+        for c in self.children:
+            c.__ranks__(ranks)
+        return ranks
+
+    def __rank_tree__(self, parent_rank, lineages):
+        if self.rank != 'no rank' and self.rank != parent_rank:
+            if self.rank in lineages:
+                lineages[self.rank].add(parent_rank)
+            else:
+                lineages[self.rank] = set()
+            parent_rank = self.rank
+        for c in self.children:
+            c.__rank_tree__(parent_rank, lineages)
+        return lineages
+
+    def __repr__(self):
+        return '{} "{}" [{}]'.format(self.tax_id, self.name, self.rank)
+
+    def add_child(self, child):
+        self.children.append(child)
+
+    def set_name(self, name):
+        self.name = name
+
+    def set_rank(self, rank):
+        self.rank = rank
+
+    def prune(self, keep):
+        cut = self.tax_id not in keep
+        for c in list(self.children):
+            if c.prune(keep):
+                self.children.remove(c)
+            else:
+                cut = False
+        return cut
+
+    def rank_order(self):
+        '''
+        Calculates rank order by tree traversal
+        '''
+        lineages = self.__rank_tree__(self.rank, {})
+        for l in lineages.values():
+            l.discard(self.rank)
+        ranks = [self.rank]
+        while lineages:
+            next_rank = sorted(lineages, key=lambda x: len(lineages[x]))[0]
+            ranks.append(next_rank)
+            del lineages[next_rank]
+            for v in lineages.values():
+                v.discard(next_rank)
+        return ranks
+
+    def ranks(self):
+        return self.__ranks__()
+
+    def write_lineage(self, outfile, lineage={}):
+        lineage.update({self.rank: self.tax_id})
+        outfile.writerow({'tax_id': self.tax_id, **lineage})
+        for c in self.children:
+            c.write_lineage(outfile, lineage.copy())
+
+    def write_tree(self, outfile, level, print_char='|--- '):
+        if level != 0:
+            outfile.write(print_char + str(self) + '\n')
+            for c in self.children:
+                c.write_tree(outfile, level-1, print_char='|    ' + print_char)
+
+
+class Tree(dict):
+    '''
+    Builds and returns all the nodes as a dictionary object
+    '''
+    def __init__(self, nodes, names=None):
+        for tax_id, parent_id, rank in nodes:
+            if tax_id in self:
+                node = self[tax_id]
+            else:
+                node = Node(tax_id)
+                self[tax_id] = node
+
+            node.set_rank(rank)
+
+            if tax_id == parent_id:  # top node
+                self.root = node
+                continue
+
+            if parent_id in self:
+                parent = self[parent_id]
+            else:
+                parent = Node(parent_id)
+                self[parent_id] = parent
+
+            parent.add_child(node)
+
+        if names is not None:
+            for tax_id, name in names:
+                self[tax_id].set_name(name)
+
+
+def get_parser():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        'taxdmp',
+        nargs='?',
+        metavar='tar.gz',
+        help='ncbi taxdmp.tar.gz')
+
+    parser.add_argument(
+        '-V', '--version',
+        action='version',
+        version=pkg_resources.get_distribution('taxmagick').version,
+        help='Print the version number and exit.')
+    log_parser = parser.add_argument_group(title='logging')
+    log_parser.add_argument(
+        '-l', '--log',
+        metavar='FILE',
+        type=argparse.FileType('a'),
+        default=sys.stdout,
+        help='Send logging to a file')
+    log_parser.add_argument(
+        '-v', '--verbose',
+        action='count',
+        dest='verbosity',
+        default=0,
+        help='Increase verbosity of screen output '
+             '(eg, -v is verbose, -vv more so)')
+    log_parser.add_argument(
+        '-q', '--quiet',
+        action='store_const',
+        dest='verbosity',
+        const=0,
+        help='Suppress output')
+    parser.add_argument(
+        '--ids',
+        metavar='',
+        help='tax_ids to construct lineages for')
+    parser.add_argument(
+        '--name-class',
+        default='scientific name',
+        help='name class to use in tree [%(default)s]')
+    parser.add_argument(
+        '--root',
+        default='1',
+        metavar='',
+        help='root node tax id for output [%(default)s]')
+    parser.add_argument(
+        '--url',
+        default=NCBI,
+        help='[%(default)s]')
+    parser.add_argument(
+        '-o', '--out',
+        metavar='',
+        default=sys.stdout,
+        type=argparse.FileType('w'),
+        help='output tree')
+    return parser
+
+
+def setup_logging(namespace):
+    loglevel = {
+        0: logging.ERROR,
+        1: logging.WARNING,
+        2: logging.INFO,
+        3: logging.DEBUG,
+    }.get(namespace.verbosity, logging.DEBUG)
+    if namespace.verbosity > 1:
+        logformat = '%(levelname)s taxtree %(message)s'
+    else:
+        logformat = 'taxtree %(message)s'
+    logging.basicConfig(stream=namespace.log, format=logformat, level=loglevel)

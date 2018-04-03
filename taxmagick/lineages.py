@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Tree output of ncbi taxonomy
+lineages file
 
 ncbi - ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz
 """
+import csv
 import io
 import logging
 import os
@@ -13,16 +14,13 @@ import tarfile
 
 from . import Tree, get_parser, setup_logging
 
-NCBI = 'ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz'
-
 
 def add_arguments(parser):
     parser.add_argument(
-        '-L', '--level',
-        metavar='',
-        type=int,
-        default=-1,
-        help='max depth of the taxonomic tree')
+        '--no-rank',
+        action='store_true',
+        help='include "no rank" nodes [False]')
+
     return parser
 
 
@@ -45,20 +43,24 @@ def main(args=sys.argv[1:]):
     nodes = (n.strip().replace('\t', '').split('|') for n in nodes)
     nodes = (n[:3] for n in nodes)  # tax_id,parent,rank
 
-    names = io.TextIOWrapper(taxdmp.extractfile('names.dmp'))
-    names = (n.strip().replace('\t', '').split('|') for n in names)
-    names = (n for n in names if n[3] == args.name_class)
-    names = (n[:2] for n in names)  # tax_id, name
-
     logging.info('building node tree')
-    root = Tree(nodes, names)[args.root]
+    tree = Tree(nodes)
+
+    logging.info('calculating ranks')
+    rank_order = tree.root.rank_order()
+
+    # reset root node for output
+    root = tree[args.root]
 
     if args.ids:
-        logging.info('pruning')
-        ids = set(i.strip() for i in args.ids.split(','))
-        root.prune(ids)
+        ids = set(i for i in args.ids.split(','))
+        root.prune(keep=ids)
 
-    root.write_tree(args.out, args.level)
+    ranks = root.ranks()
+    output_ranks = [r for r in rank_order if r in ranks]
+    out = csv.DictWriter(args.out, fieldnames=['tax_id'] + output_ranks)
+    out.writeheader()
+    root.write_lineage(out)
 
 
 if __name__ == '__main__':
