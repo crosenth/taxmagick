@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """
-Node and Tree objects
 """
 import argparse
+import io
 import logging
+import os
 import pkg_resources
+import tarfile
+import urllib
 import sys
 
 NCBI = 'ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz'
+ROOT = 'root'
 
 
 class Node:
@@ -23,6 +27,9 @@ class Node:
         return ranks
 
     def __rank_tree__(self, parent_rank, lineages):
+        '''Creates sets of ranks to parent ranks via
+        tree traversal to determine rank order
+        '''
         if self.rank != 'no rank' and self.rank != parent_rank:
             if self.rank in lineages:
                 lineages[self.rank].add(parent_rank)
@@ -54,10 +61,15 @@ class Node:
                 cut = False
         return cut
 
-    def rank_order(self):
+    def rank_order(self, no_ranks):
         '''
-        Calculates rank order by tree traversal
+        Determines rank order
+
+        Args:
+            no_ranks (bool): include 'no rank' nodes
         '''
+        if not no_ranks and self.rank == 'no rank':
+            self.rank = ROOT
         lineages = self.__rank_tree__(self.rank, {})
         for l in lineages.values():
             l.discard(self.rank)
@@ -74,8 +86,18 @@ class Node:
         return self.__ranks__()
 
     def write_lineage(self, outfile, lineage={}):
-        lineage.update({self.rank: self.tax_id})
-        outfile.writerow({'tax_id': self.tax_id, **lineage})
+        '''Write csv file of taxonomic lineages
+
+        Args:
+            outfile (DictWriter): Output file
+            lineage (dict): Dictionary of parent lineage
+
+        Returns:
+            None
+        '''
+        if self.rank in outfile.fieldnames:
+            lineage.update({self.rank: self.name or self.tax_id})
+            outfile.writerow({'tax_id': self.tax_id, **lineage})
         for c in self.children:
             c.write_lineage(outfile, lineage.copy())
 
@@ -100,7 +122,7 @@ class Tree(dict):
 
             node.set_rank(rank)
 
-            if tax_id == parent_id:  # top node
+            if tax_id == parent_id:  # top node, no parent
                 self.root = node
                 continue
 
@@ -117,14 +139,41 @@ class Tree(dict):
                 self[tax_id].set_name(name)
 
 
+def get_data(taxdmp, url, name_class):
+    if taxdmp is not None:
+        tar = taxdmp
+    else:
+        logging.info('downloading ' + url)
+        tar, headers = urllib.request.urlretrieve(
+            url, os.path.basename(url))
+        logging.debug(str(headers).strip())
+    taxdmp = tarfile.open(name=tar, mode='r:gz')
+    nodes = io.TextIOWrapper(taxdmp.extractfile('nodes.dmp'))
+    nodes = (n.strip().replace('\t', '').split('|') for n in nodes)
+    nodes = (n[:3] for n in nodes)  # tax_id,parent,rank
+    names = io.TextIOWrapper(taxdmp.extractfile('names.dmp'))
+    names = (n.strip().replace('\t', '').split('|') for n in names)
+    names = (n for n in names if n[3] == name_class)
+    names = (n[:2] for n in names)  # tax_id, name
+    return nodes, names
+
+
 def get_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         'taxdmp',
         nargs='?',
-        metavar='tar.gz',
         help='ncbi taxdmp.tar.gz')
-
+    parser.add_argument(
+        '--name-class',
+        metavar='',
+        default='scientific name',
+        help='name class to use in tree [%(default)s]')
+    parser.add_argument(
+        '--url',
+        metavar='',
+        default=NCBI,
+        help='[%(default)s]')
     parser.add_argument(
         '-V', '--version',
         action='version',
@@ -144,29 +193,17 @@ def get_parser():
         default=0,
         help='Increase verbosity of screen output '
              '(eg, -v is verbose, -vv more so)')
-    log_parser.add_argument(
-        '-q', '--quiet',
-        action='store_const',
-        dest='verbosity',
-        const=0,
-        help='Suppress output')
-    parser.add_argument(
+    tree_parser = parser.add_argument_group(
+        title='tree options')
+    tree_parser.add_argument(
         '--ids',
         metavar='',
-        help='tax_ids to construct lineages for')
-    parser.add_argument(
-        '--name-class',
-        default='scientific name',
-        help='name class to use in tree [%(default)s]')
-    parser.add_argument(
+        help='prune tree around these tax ids')
+    tree_parser.add_argument(
         '--root',
         default='1',
         metavar='',
         help='root node tax id for output [%(default)s]')
-    parser.add_argument(
-        '--url',
-        default=NCBI,
-        help='[%(default)s]')
     parser.add_argument(
         '-o', '--out',
         metavar='',
