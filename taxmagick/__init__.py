@@ -27,8 +27,8 @@ class Node:
         return ranks
 
     def __rank_tree__(self, parent_rank, lineages):
-        '''Creates sets of ranks to parent ranks via
-        tree traversal to determine rank order
+        '''Creates a dictionary of sets with keys being ranks pointing
+        to a set of parent ranks via tree traversal.
         '''
         if self.rank != 'no rank' and self.rank != parent_rank:
             if self.rank in lineages:
