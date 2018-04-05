@@ -7,7 +7,7 @@ import logging
 import os
 import pkg_resources
 import tarfile
-import urllib
+import urllib.request
 import sys
 
 NCBI = 'ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz'
@@ -68,8 +68,6 @@ class Node:
         Args:
             no_ranks (bool): include 'no rank' nodes
         '''
-        if not no_ranks and self.rank == 'no rank':
-            self.rank = ROOT
         lineages = self.__rank_tree__(self.rank, {})
         for l in lineages.values():
             l.discard(self.rank)
@@ -112,6 +110,12 @@ class Tree(dict):
     '''
     Builds and returns all the nodes as a dictionary object
     '''
+    # def __getitem__(self, item):
+    #     node = super.__getitem__(item)
+    #     if node.rank == 'no rank':
+    #         node.rank == ROOT
+    #     return node
+
     def __init__(self, nodes, names=None):
         for tax_id, parent_id, rank in nodes:
             if tax_id in self:
