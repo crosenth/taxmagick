@@ -19,9 +19,8 @@ def add_arguments(parser):
         action='store_true',
         help='include taxonomic names')
     lineage_parser.add_argument(
-        '--no-rank',
-        action='store_true',
-        help='include "no rank" nodes')
+        '--no-rank-suffix',
+        help='apply parent rank with suffix to "no rank" nodes')
     return parser
 
 
@@ -33,7 +32,7 @@ def main(args=sys.argv[1:]):
     logging.info('building node tree')
     tree = Tree(nodes, names if args.names else None)
     logging.info('calculating ranks')
-    rank_order = tree.root.rank_order(args.no_rank)
+    rank_order = tree.root.rank_order(args.no_rank_suffix)
     root = tree[args.root]  # reset root node for output
     if args.ids:
         logging.info('pruning')

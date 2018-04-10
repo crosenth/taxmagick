@@ -26,7 +26,7 @@ class Node:
             c.__ranks__(ranks)
         return ranks
 
-    def __rank_tree__(self, parent_rank, lineages):
+    def __rank_tree__(self, parent_rank, lineages, no_rank_suffix=None):
         '''Creates a dictionary of sets with keys being ranks pointing
         to a set of parent ranks via tree traversal.
         '''
@@ -61,17 +61,17 @@ class Node:
                 cut = False
         return cut
 
-    def rank_order(self, no_ranks):
+    def rank_order(self, no_rank_suffix=None):
         '''
         Determines rank order
 
         Args:
             no_ranks (bool): include 'no rank' nodes
         '''
-        lineages = self.__rank_tree__(self.rank, {})
+        lineages = self.__rank_tree__(self.rank, {}, no_rank_suffix)
         for l in lineages.values():
             l.discard(self.rank)
-        ranks = [self.rank]
+        ranks = [ROOT] if no_rank_suffix is not None else []
         while lineages:
             next_rank = sorted(lineages, key=lambda x: len(lineages[x]))[0]
             ranks.append(next_rank)
@@ -110,12 +110,6 @@ class Tree(dict):
     '''
     Builds and returns all the nodes as a dictionary object
     '''
-    # def __getitem__(self, item):
-    #     node = super.__getitem__(item)
-    #     if node.rank == 'no rank':
-    #         node.rank == ROOT
-    #     return node
-
     def __init__(self, nodes, names=None):
         for tax_id, parent_id, rank in nodes:
             if tax_id in self:
@@ -158,7 +152,7 @@ def get_data(taxdmp, url, name_class):
     names = io.TextIOWrapper(taxdmp.extractfile('names.dmp'))
     names = (n.strip().replace('\t', '').split('|') for n in names)
     names = (n for n in names if n[3] == name_class)
-    names = (n[:2] for n in names)  # tax_id, name
+    names = (n[:2] for n in names)  # tax_id,name
     return nodes, names
 
 

@@ -32,7 +32,7 @@ An example using a couple Escherichia coli tax ids the output looks like
 this
 
 ```
-taxtree --root 131567 --ids 866789,481805 taxdump.tar.gz
+taxtree --root 131567 --ids 562,41956 taxdump.tar.gz
 
 |--- 131567 "cellular organisms" [no rank]
 |    |--- 2 "Bacteria" [superkingdom]
@@ -42,11 +42,69 @@ taxtree --root 131567 --ids 866789,481805 taxdump.tar.gz
 |    |    |    |    |    |--- 543 "Enterobacteriaceae" [family]
 |    |    |    |    |    |    |--- 561 "Escherichia" [genus]
 |    |    |    |    |    |    |    |--- 562 "Escherichia coli" [species]
-|    |    |    |    |    |    |    |    |--- 498388 "Escherichia coli C" [no rank]
-|    |    |    |    |    |    |    |    |    |--- 481805 "Escherichia coli ATCC 8739" [no rank]
-|    |    |    |    |    |    |    |    |--- 866789 "Escherichia coli DSM 30083 = JCM 1649 = ATCC 11775" [no rank]
+|    |--- 2759 "Eukaryota" [superkingdom]
+|    |    |--- 33154 "Opisthokonta" [no rank]
+|    |    |    |--- 4751 "Fungi" [kingdom]
+|    |    |    |    |--- 451864 "Dikarya" [subkingdom]
+|    |    |    |    |    |--- 5204 "Basidiomycota" [phylum]
+|    |    |    |    |    |    |--- 5302 "Agaricomycotina" [subphylum]
+|    |    |    |    |    |    |    |--- 155619 "Agaricomycetes" [class]
+|    |    |    |    |    |    |    |    |--- 452333 "Agaricomycetidae" [subclass]
+|    |    |    |    |    |    |    |    |    |--- 5338 "Agaricales" [order]
+|    |    |    |    |    |    |    |    |    |    |--- 41954 "Amanitaceae" [family]
+|    |    |    |    |    |    |    |    |    |    |    |--- 41955 "Amanita" [genus]
+|    |    |    |    |    |    |    |    |    |    |    |    |--- 41956 "Amanita muscaria" [species]
 ```
 
 The second command is the lineages command that generates either a tax id
 based lineage file in csv form or a tax name based lineage csv file.  The rank
 order used in the header is determined by traversing the NCBI taxonomic data.
+
+```
+lineages --root 131567 --ids 562,41956 taxdump.tar.gz
+
+tax_id,superkingdom,kingdom,subkingdom,phylum,subphylum,class,subclass,order,family,genus,species
+2,2,,,,,,,,,,
+1224,2,,,1224,,,,,,,
+1236,2,,,1224,,1236,,,,,
+91347,2,,,1224,,1236,,91347,,,
+543,2,,,1224,,1236,,91347,543,,
+561,2,,,1224,,1236,,91347,543,561,
+562,2,,,1224,,1236,,91347,543,561,562
+2759,2759,,,,,,,,,,
+4751,2759,4751,,,,,,,,,
+451864,2759,4751,451864,,,,,,,,
+5204,2759,4751,451864,5204,,,,,,,
+5302,2759,4751,451864,5204,5302,,,,,,
+155619,2759,4751,451864,5204,5302,155619,,,,,
+452333,2759,4751,451864,5204,5302,155619,452333,,,,
+5338,2759,4751,451864,5204,5302,155619,452333,5338,,,
+41954,2759,4751,451864,5204,5302,155619,452333,5338,41954,,
+41955,2759,4751,451864,5204,5302,155619,452333,5338,41954,41955,
+41956,2759,4751,451864,5204,5302,155619,452333,5338,41954,41955,41956
+```
+And if `--names` is specified then the `--name-class` will be used instead of tax id.
+
+```
+lineages --root 131567 --ids 562,41956 taxdump.tar.gz
+
+d,superkingdom,kingdom,subkingdom,phylum,subphylum,class,subclass,order,family,genus,species
+2,Bacteria,,,,,,,,,,
+1224,Bacteria,,,Proteobacteria,,,,,,,
+1236,Bacteria,,,Proteobacteria,,Gammaproteobacteria,,,,,
+91347,Bacteria,,,Proteobacteria,,Gammaproteobacteria,,Enterobacterales,,,
+543,Bacteria,,,Proteobacteria,,Gammaproteobacteria,,Enterobacterales,Enterobacteriaceae,,
+561,Bacteria,,,Proteobacteria,,Gammaproteobacteria,,Enterobacterales,Enterobacteriaceae,Escherichia,
+562,Bacteria,,,Proteobacteria,,Gammaproteobacteria,,Enterobacterales,Enterobacteriaceae,Escherichia,Escherichia coli
+2759,Eukaryota,,,,,,,,,,
+4751,Eukaryota,Fungi,,,,,,,,,
+451864,Eukaryota,Fungi,Dikarya,,,,,,,,
+5204,Eukaryota,Fungi,Dikarya,Basidiomycota,,,,,,,
+5302,Eukaryota,Fungi,Dikarya,Basidiomycota,Agaricomycotina,,,,,,
+155619,Eukaryota,Fungi,Dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,,,,,
+452333,Eukaryota,Fungi,Dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,,,,
+5338,Eukaryota,Fungi,Dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,,,
+41954,Eukaryota,Fungi,Dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Amanitaceae,,
+41955,Eukaryota,Fungi,Dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Amanitaceae,Amanita,
+41956,Eukaryota,Fungi,Dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Amanitaceae,Amanita,Amanita muscaria
+```
