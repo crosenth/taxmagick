@@ -21,15 +21,15 @@ python3 setup.py install
 # Documentation
 
 There are two commands in this package.  The first command is the `taxtree`
-command that generates a text based taxonomic tree.  A user can choose
-individual tax ids to visualize along with a top level root node.  If 
-no root node is defined the ncbi top level root node is used.  If a 
-subset of tax ids is not defined then the entire taxonomic tree is
-output.  If no taxdmp.tar.gz file is specified then it will be downloaded automatically
-and saved in the current directory.
+command that generates a text based taxonomic tree.  With both commands 
+the user can choose individual tax ids to visualize along with a top level 
+root node.  If the `--root` node is not specified then the ncbi top level root 
+node (tax id 1) is used.  If a subset of tax ids is not defined then the entire 
+taxonomic tree is output.  If no taxdmp.tar.gz file is specified then it will be 
+downloaded automatically and saved in the current directory.
 
-An example using a couple Escherichia coli tax ids the output looks like
-this
+A taxtree example using Escherichia coli (tax id 562) and Amanita muscaria (41956) the 
+output looks like this
 
 ```
 taxtree --root 131567 --ids 562,41956 taxdump.tar.gz
@@ -56,9 +56,11 @@ taxtree --root 131567 --ids 562,41956 taxdump.tar.gz
 |    |    |    |    |    |    |    |    |    |    |    |    |--- 41956 "Amanita muscaria" [species]
 ```
 
-The second command is the lineages command that generates either a tax id
-based lineage file in csv form or a tax name based lineage csv file.  The rank
-order used in the header is determined by traversing the NCBI taxonomic data.
+By default `--name-class "scientific name"` is used for taxonomic names.
+
+The second `lineages` command generates either a tax id based lineage file in 
+csv form or a tax name based lineage csv file.  The rank order used in the 
+header is determined by traversing the NCBI taxonomic data.
 
 ```
 lineages --root 131567 --ids 562,41956 taxdump.tar.gz
@@ -108,3 +110,10 @@ d,superkingdom,kingdom,subkingdom,phylum,subphylum,class,subclass,order,family,g
 41955,Eukaryota,Fungi,Dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Amanitaceae,Amanita,
 41956,Eukaryota,Fungi,Dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Amanitaceae,Amanita,Amanita muscaria
 ```
+
+Both commands are fast and memory efficient to run.
+
+# Contact
+
+Please email [me](https://github.com/crosenth) by email for requests or concerns about current or
+future taxonomic outputs.
