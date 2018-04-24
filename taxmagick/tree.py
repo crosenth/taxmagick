@@ -9,8 +9,6 @@ import sys
 
 from . import Tree, get_parser, setup_logging, get_data
 
-NCBI = 'ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz'
-
 
 def add_arguments(parser):
     parser.add_argument(
@@ -28,7 +26,11 @@ def main(args=sys.argv[1:]):
     setup_logging(args)
     logging.info('building node tree')
     nodes, names = get_data(args.taxdmp, args.url, args.name_class)
-    root = Tree(nodes, names)[args.root]
+    tree = Tree(nodes, names)
+    if args.no_rank_suffix is not None:
+        logging.info('expanding "no rank"')
+        tree.expand_ranks(args.no_rank_suffix)
+    root = tree[args.root]
     if args.ids:
         logging.info('pruning')
         ids = set(i.strip() for i in args.ids.split(','))

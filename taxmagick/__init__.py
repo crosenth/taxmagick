@@ -20,13 +20,7 @@ class Node:
         self.children = []
         self.name = ''
 
-    def __ranks__(self, ranks=set()):
-        ranks.add(self.rank)
-        for c in self.children:
-            c.__ranks__(ranks)
-        return ranks
-
-    def __rank_tree__(self, parent_rank, lineages, no_rank_suffix=None):
+    def __rank_tree__(self, parent_rank, lineages={}):
         '''Creates a dictionary of sets with keys being ranks pointing
         to a set of parent ranks via tree traversal.
         '''
@@ -46,11 +40,13 @@ class Node:
     def add_child(self, child):
         self.children.append(child)
 
-    def set_name(self, name):
-        self.name = name
-
-    def set_rank(self, rank):
-        self.rank = rank
+    def expand_no_ranks(self, suffix, ranks, parent=ROOT):
+        if self.rank == 'no rank':
+            self.rank = parent + suffix
+            if self.rank not in ranks:
+                ranks.insert(ranks.index(parent) + 1, self.rank)
+        for c in self.children:
+            c.expand_no_ranks(suffix, ranks, self.rank)
 
     def prune(self, keep):
         cut = self.tax_id not in keep
@@ -61,27 +57,11 @@ class Node:
                 cut = False
         return cut
 
-    def rank_order(self, no_rank_suffix=None):
-        '''
-        Determines rank order
-
-        Args:
-            no_ranks (bool): include 'no rank' nodes
-        '''
-        lineages = self.__rank_tree__(self.rank, {}, no_rank_suffix)
-        for l in lineages.values():
-            l.discard(self.rank)
-        ranks = [ROOT] if no_rank_suffix is not None else []
-        while lineages:
-            next_rank = sorted(lineages, key=lambda x: len(lineages[x]))[0]
-            ranks.append(next_rank)
-            del lineages[next_rank]
-            for v in lineages.values():
-                v.discard(next_rank)
+    def ranks(self, ranks=set()):
+        ranks.add(self.rank)
+        for c in self.children:
+            c.ranks(ranks)
         return ranks
-
-    def ranks(self):
-        return self.__ranks__()
 
     def write_lineage(self, outfile, lineage={}):
         '''Write csv file of taxonomic lineages
@@ -118,7 +98,7 @@ class Tree(dict):
                 node = Node(tax_id)
                 self[tax_id] = node
 
-            node.set_rank(rank)
+            node.rank = rank
 
             if tax_id == parent_id:  # top node, no parent
                 self.root = node
@@ -134,7 +114,35 @@ class Tree(dict):
 
         if names is not None:
             for tax_id, name in names:
-                self[tax_id].set_name(name)
+                self[tax_id].name = name
+
+        self.ranks = self.__ranks__()
+
+    def __ranks__(self):
+        '''
+        Determines rank order
+
+        Args:
+            no_ranks (bool): include 'no rank' nodes
+        '''
+        lineages = self.root.__rank_tree__(self.root.rank)
+        for l in lineages.values():
+            l.discard(self.root.rank)
+        ranks = []
+        if self.root.rank != 'no rank':
+            ranks.append(self.root.rank)
+        while lineages:
+            next_rank = sorted(lineages, key=lambda x: len(lineages[x]))[0]
+            ranks.append(next_rank)
+            del lineages[next_rank]
+            for v in lineages.values():
+                v.discard(next_rank)
+        return ranks
+
+    def expand_ranks(self, suffix):
+        self.root.rank = ROOT
+        self.ranks.insert(0, ROOT)
+        self.root.expand_no_ranks(suffix, self.ranks)
 
 
 def get_data(taxdmp, url, name_class):
@@ -177,6 +185,9 @@ def get_parser():
         action='version',
         version=pkg_resources.get_distribution('taxmagick').version,
         help='Print the version number and exit.')
+    parser.add_argument(
+        '--no-rank-suffix',
+        help='apply parent rank with suffix to "no rank" nodes')
     log_parser = parser.add_argument_group(title='logging')
     log_parser.add_argument(
         '-l', '--log',
@@ -191,8 +202,7 @@ def get_parser():
         default=0,
         help='Increase verbosity of screen output '
              '(eg, -v is verbose, -vv more so)')
-    tree_parser = parser.add_argument_group(
-        title='tree options')
+    tree_parser = parser.add_argument_group(title='tree options')
     tree_parser.add_argument(
         '--ids',
         metavar='',

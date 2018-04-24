@@ -6,7 +6,7 @@ if sys.version_info < (3, 0):
 
 setuptools.setup(author='Chris Rosenthal',
                  author_email='crosenth@gmail.com',
-                 description='Tools for managing ncbi taxonomic data',
+                 description='Tools for visualizing ncbi taxonomic data',
                  keywords=['ncbi', 'rrndb', 'genetics', 'genomics'],
                  name='taxmagick',
                  packages=setuptools.find_packages(),
