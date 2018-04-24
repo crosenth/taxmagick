@@ -121,9 +121,6 @@ class Tree(dict):
     def __ranks__(self):
         '''
         Determines rank order
-
-        Args:
-            no_ranks (bool): include 'no rank' nodes
         '''
         lineages = self.root.__rank_tree__(self.root.rank)
         for l in lineages.values():
