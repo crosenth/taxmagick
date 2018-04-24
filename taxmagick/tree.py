@@ -11,7 +11,8 @@ from . import Tree, get_parser, setup_logging, get_data
 
 
 def add_arguments(parser):
-    parser.add_argument(
+    taxtree_parser = parser.add_argument_group(title='taxtree options')
+    taxtree_parser.add_argument(
         '-L', '--level',
         metavar='',
         type=int,
