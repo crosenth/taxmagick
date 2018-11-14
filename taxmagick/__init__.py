@@ -185,7 +185,7 @@ def get_parser():
     parser.add_argument(
         '--no-rank-suffix',
         metavar='',
-        help='append to parent rank and asign to "no rank" nodes')
+        help='append to parent rank and assign to "no rank" nodes')
     log_parser = parser.add_argument_group(title='logging')
     log_parser.add_argument(
         '-l', '--log',
