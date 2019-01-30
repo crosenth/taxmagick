@@ -63,7 +63,7 @@ class Node:
             c.ranks(ranks)
         return ranks
 
-    def write_lineage(self, outfile, lineage={}):
+    def write_lineage(self, outfile, lineage=None, names=False):
         '''Write csv file of taxonomic lineages
 
         Args:
@@ -73,9 +73,15 @@ class Node:
         Returns:
             None
         '''
+        if lineage is None:
+            lineage = {}
         if self.rank in outfile.fieldnames:
-            lineage.update({self.rank: self.name or self.tax_id})
-            outfile.writerow({'tax_id': self.tax_id, **lineage})
+            lineage.update({self.rank: self.name if names else self.tax_id})
+            outfile.writerow(
+                {'tax_id': self.tax_id,
+                 'tax_name': self.name,
+                 'rank': self.rank,
+                 **lineage})
         for c in self.children:
             c.write_lineage(outfile, lineage.copy())
 
@@ -136,21 +142,25 @@ class Tree(dict):
                 v.discard(next_rank)
         return ranks
 
+    def include_root(self):
+        if self.ranks[0] != ROOT:
+            self.root.rank = ROOT
+            self.ranks.insert(0, ROOT)
+
     def expand_ranks(self, suffix):
-        self.root.rank = ROOT
-        self.ranks.insert(0, ROOT)
+        self.include_root()
         self.root.expand_no_ranks(suffix, self.ranks)
 
 
+def get_taxdmp(url):
+    logging.info('downloading ' + url)
+    tar, headers = urllib.request.urlretrieve(url, os.path.basename(url))
+    logging.debug(str(headers).strip())
+    return tar
+
+
 def get_data(taxdmp, url, name_class):
-    if taxdmp is not None:
-        tar = taxdmp
-    else:
-        logging.info('downloading ' + url)
-        tar, headers = urllib.request.urlretrieve(
-            url, os.path.basename(url))
-        logging.debug(str(headers).strip())
-    taxdmp = tarfile.open(name=tar, mode='r:gz')
+    taxdmp = tarfile.open(name=get_taxdmp(url), mode='r:gz')
     nodes = io.TextIOWrapper(taxdmp.extractfile('nodes.dmp'))
     nodes = (n.strip().replace('\t', '').split('|') for n in nodes)
     nodes = (n[:3] for n in nodes)  # tax_id,parent,rank
@@ -183,7 +193,7 @@ def get_parser():
         version=pkg_resources.get_distribution('taxmagick').version,
         help='Print the version number and exit.')
     parser.add_argument(
-        '--no-rank-suffix',
+        '--expand-ranks',
         metavar='',
         help='append to parent rank and assign to "no rank" nodes')
     log_parser = parser.add_argument_group(title='logging')

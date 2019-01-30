@@ -26,10 +26,10 @@ def main(args=sys.argv[1:]):
     setup_logging(args)
     nodes, names = get_data(args.taxdmp, args.url, args.name_class)
     logging.info('building node tree')
-    tree = Tree(nodes, names if args.names else None)
-    if args.no_rank_suffix is not None:
+    tree = Tree(nodes, names)
+    if args.expand_ranks is not None:
         logging.info('expanding "no rank"')
-        tree.expand_ranks(args.no_rank_suffix)
+        tree.expand_ranks(args.expand_ranks)
     root = tree[args.root]  # reset root node for output
     if args.ids:
         logging.info('pruning')
@@ -37,10 +37,12 @@ def main(args=sys.argv[1:]):
         root.prune(keep=ids)
     ranks = root.ranks()
     output_ranks = [r for r in tree.ranks if r in ranks]
-    out = csv.DictWriter(args.out, fieldnames=['tax_id'] + output_ranks)
+    out = csv.DictWriter(
+        args.out,
+        fieldnames=['tax_id', 'tax_name', 'rank'] + output_ranks)
     out.writeheader()
     logging.info('writing lineage')
-    root.write_lineage(out)
+    root.write_lineage(out, names=args.names)
 
 
 if __name__ == '__main__':
