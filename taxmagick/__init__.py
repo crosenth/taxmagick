@@ -203,7 +203,7 @@ def get_parser():
         version=pkg_resources.get_distribution('taxmagick').version,
         help='Print the version number and exit.')
     parser.add_argument(
-        '--expand-ranks',
+        '--expand-no-ranks',
         metavar='',
         help='append to parent rank and assign to "no rank" nodes')
     log_parser = parser.add_argument_group(title='logging')

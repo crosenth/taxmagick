@@ -28,9 +28,9 @@ def main(args=sys.argv[1:]):
     nodes, names = get_data(args.taxdmp, args.url, args.name_class)
     logging.info('building node tree')
     tree = Tree(nodes, names)
-    if args.expand_ranks is not None:
+    if args.expand_no_ranks is not None:
         logging.info('expanding "no rank"')
-        tree.expand_ranks(args.expand_ranks)
+        tree.expand_ranks(args.expand_no_ranks)
     root = tree[args.root]  # reset root node for output
     if args.ids:
         logging.info('pruning')
@@ -44,7 +44,8 @@ def main(args=sys.argv[1:]):
     output_ranks = [r for r in tree.ranks if r in ranks]
     out = csv.DictWriter(
         args.out,
-        fieldnames=['tax_id', 'tax_name', 'rank'] + output_ranks)
+        fieldnames=['tax_id', 'tax_name', 'rank'] + output_ranks,
+        quoting=csv.QUOTE_MINIMAL)
     out.writeheader()
     logging.info('writing lineage')
     root.write_lineage(out, names=args.names)
