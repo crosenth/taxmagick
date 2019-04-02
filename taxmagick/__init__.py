@@ -9,6 +9,7 @@ import pkg_resources
 import tarfile
 import urllib.request
 import sys
+import zipfile
 
 NCBI = 'ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz'
 ROOT = 'root'
@@ -160,11 +161,20 @@ def get_taxdmp(url):
 
 
 def get_data(taxdmp, url, name_class):
-    taxdmp = tarfile.open(name=get_taxdmp(url), mode='r:gz')
-    nodes = io.TextIOWrapper(taxdmp.extractfile('nodes.dmp'))
+    if not os.path.isfile(taxdmp):
+        taxdmp = get_taxdmp(url)
+    if taxdmp.endswith('gz'):
+        taxdmp = tarfile.open(name=get_taxdmp(url), mode='r:gz')
+        nodes = io.TextIOWrapper(taxdmp.extractfile('nodes.dmp'))
+        names = io.TextIOWrapper(taxdmp.extractfile('names.dmp'))
+    elif taxdmp.endswith('zip'):
+        taxdmp = zipfile.ZipFile(taxdmp)
+        nodes = io.TextIOWrapper(taxdmp.open('nodes.dmp'))
+        names = io.TextIOWrapper(taxdmp.open('names.dmp'))
+    else:
+        raise ValueError('Unknown file type: ' + taxdmp)
     nodes = (n.strip().replace('\t', '').split('|') for n in nodes)
     nodes = (n[:3] for n in nodes)  # tax_id,parent,rank
-    names = io.TextIOWrapper(taxdmp.extractfile('names.dmp'))
     names = (n.strip().replace('\t', '').split('|') for n in names)
     names = (n for n in names if n[3] == name_class)
     names = (n[:2] for n in names)  # tax_id,name
