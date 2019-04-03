@@ -14,7 +14,7 @@ setuptools.setup(author='Chris Rosenthal',
                      'console_scripts': [
                         'taxtree=taxmagick.tree:main',
                         'lineages=taxmagick.lineages:main']},
-                 version=0.2,
+                 version=0.1,
                  url='https://github.com/crosenth/taxmagick',
                  license='GPLv3',
                  classifiers=[
