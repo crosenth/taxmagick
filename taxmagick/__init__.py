@@ -161,10 +161,10 @@ def get_taxdmp(url):
 
 
 def get_data(taxdmp, url, name_class):
-    if not os.path.isfile(taxdmp):
+    if not taxdmp:
         taxdmp = get_taxdmp(url)
     if taxdmp.endswith('gz'):
-        taxdmp = tarfile.open(name=get_taxdmp(url), mode='r:gz')
+        taxdmp = tarfile.open(name=taxdmtaxdmp
         nodes = io.TextIOWrapper(taxdmp.extractfile('nodes.dmp'))
         names = io.TextIOWrapper(taxdmp.extractfile('names.dmp'))
     elif taxdmp.endswith('zip'):
